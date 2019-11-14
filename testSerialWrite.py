@@ -94,12 +94,15 @@ class APT:
 
         tmp = read_data[low_lim:up_lim]
         tmp = tmp.ljust(pad_width, pad_char)
-        return str(struct.unpack(c_type, tmp)[0])
+        return struct.unpack(c_type, tmp)[0]
 
     def pos(self):
         self.wait_for_our_turn()
         self.send_it(b'\x71\x08\x03\x00\x50\x01')
         r = self.read_ser()
+
+        def pos_mm(diff):
+            return 10 * diff / (2 * sum)
 
         # print(str(r))
         # print("data:")
@@ -112,12 +115,16 @@ class APT:
         # print("y_pos: " + str(data[2:3 + 1]))
         # print("sum: " + str(data[4:5 + 1]))
 
-        tmp_x = self.pad(r['data'], 'short', 0, 1 + 1)
-        tmp_y = self.pad(r['data'], 'short', 2, 3 + 1)
-        tmp_sum = self.pad(r['data'], 'word', 4, 5 + 1)
+        x_diff = self.pad(r['data'], 'short', 0, 1 + 1)
+        y_diff = self.pad(r['data'], 'short', 2, 3 + 1)
+        sum = self.pad(r['data'], 'word', 4, 5 + 1)
+        x_pos = pos_mm(x_diff)
+        y_pos = pos_mm(y_diff)
+
         tmp_time = datetime.now()
         tmp_time = tmp_time.strftime("%d/%m/%Y %H:%M:%S")
-        tmp_data_str = tmp_time + ',' + tmp_x + ',' + tmp_y + ',' + tmp_sum
+        tmp_data_str = "%s,%s,%s,%s,%s,%s" % (tmp_time, x_diff, y_diff, sum, x_pos, y_pos)
+        # tmp_data_str = tmp_time + ',' + x_diff + ',' + y_diff + ',' + sum
         print(tmp_data_str)
 
         with open(self.file_path, 'a') as f:
@@ -210,7 +217,7 @@ class APT:
     def make_file(self):
         if not os.path.exists(self.file_path):
             with open(self.file_path, 'w') as f:
-                f.write('time,x_diff,y_diff,sum')
+                f.write('time,x_diff,y_diff,sum,x_pos,y_pos')
         else:
             print(self.file_path + " already exists.")
 
